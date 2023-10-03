@@ -85,21 +85,47 @@ int main() {
                     }
                     args[arg_count] = NULL;
 
-                    // Construct the full path for the first command
-                    char full_path[250];
-                    char *pathtoken = strtok(path_backup, ":");
-                    while (pathtoken != NULL) {
-                        snprintf(full_path, sizeof(full_path), "%s/%s", pathtoken, args[0]);
-                        if (access(full_path, X_OK) == 0) {
-                            // Execute the first command from the directory
-                            execve(full_path, args, NULL);
-                            perror("Error running command 1");
-                            exit(EXIT_FAILURE);
+                    int command_executed = 0; // Flag to track if the command is executed
+
+                    // Check if the command is an absolute path
+                    if (args[0][0] == '/') {
+                        if (access(args[0], X_OK) == 0) {
+                            // Execute the absolute path command
+                            if (execve(args[0], args, NULL) == -1) {
+                                fprintf(stderr, "Error running command in execve\n");
+                                exit(-100); // Exit the child process with an error code
+                            }
+                            command_executed = 1; // Command executed successfully
                         }
-                        pathtoken = strtok(NULL, ":");
                     }
-                    fprintf(stderr, "Command 1 not found: %s\n", args[0]);
-                    exit(EXIT_FAILURE);
+
+                    else if (strchr(args[0], '/') != NULL) {
+                        char full_path[200];
+                        //Construct the full path using the current working directory
+                        snprintf(full_path, sizeof(full_path), "./%s", args[0]);
+                        if (execve(full_path, args, NULL) == -1) {
+                            fprintf(stderr, "Error running command in execve\n");
+                            return -100;
+                        }
+                    }
+
+                    else{
+                        // Construct the full path for the first command
+                        char full_path[250];
+                        char *pathtoken = strtok(path_backup, ":");
+                        while (pathtoken != NULL) {
+                            snprintf(full_path, sizeof(full_path), "%s/%s", pathtoken, args[0]);
+                            if (access(full_path, X_OK) == 0) {
+                                // Execute the first command from the directory
+                                execve(full_path, args, NULL);
+                                perror("Error running command 1");
+                                exit(EXIT_FAILURE);
+                            }
+                            pathtoken = strtok(NULL, ":");
+                        }
+                        fprintf(stderr, "Command 1 not found: %s\n", args[0]);
+                        exit(EXIT_FAILURE);
+                    }
                 }
 
                 // Fork the second child process
@@ -129,21 +155,47 @@ int main() {
                     }
                     args[arg_count] = NULL;
 
-                    // Construct the full path for the second command
-                    char full_path[250];
-                    char *pathtoken = strtok(path_backup, ":");
-                    while (pathtoken != NULL) {
-                        snprintf(full_path, sizeof(full_path), "%s/%s", pathtoken, args[0]);
-                        if (access(full_path, X_OK) == 0) {
-                            // Execute the second command from the directory
-                            execve(full_path, args, NULL);
-                            perror("Error running command 2");
-                            exit(EXIT_FAILURE);
+                    int command_executed = 0; // Flag to track if the command is executed
+
+                    // Check if the command is an absolute path
+                    if (args[0][0] == '/') {
+                        if (access(args[0], X_OK) == 0) {
+                            // Execute the absolute path command
+                            if (execve(args[0], args, NULL) == -1) {
+                                fprintf(stderr, "Error running command in execve\n");
+                                exit(-100); // Exit the child process with an error code
+                            }
+                            command_executed = 1; // Command executed successfully
                         }
-                        pathtoken = strtok(NULL, ":");
                     }
-                    fprintf(stderr, "Command 2 not found: %s\n", args[0]);
-                    exit(EXIT_FAILURE);
+
+                    else if (strchr(args[0], '/') != NULL) {
+                        char full_path[200];
+                        //Construct the full path using the current working directory
+                        snprintf(full_path, sizeof(full_path), "./%s", args[0]);
+                        if (execve(full_path, args, NULL) == -1) {
+                            fprintf(stderr, "Error running command in execve\n");
+                            return -100;
+                        }
+                    }
+
+                    else{
+                        // Construct the full path for the first command
+                        char full_path[250];
+                        char *pathtoken = strtok(path_backup, ":");
+                        while (pathtoken != NULL) {
+                            snprintf(full_path, sizeof(full_path), "%s/%s", pathtoken, args[0]);
+                            if (access(full_path, X_OK) == 0) {
+                                // Execute the first command from the directory
+                                execve(full_path, args, NULL);
+                                perror("Error running command 1");
+                                exit(EXIT_FAILURE);
+                            }
+                            pathtoken = strtok(NULL, ":");
+                        }
+                        fprintf(stderr, "Command 1 not found: %s\n", args[0]);
+                        exit(EXIT_FAILURE);
+                    }
                 }
 
                 // Close both ends of the pipe in the parent process
