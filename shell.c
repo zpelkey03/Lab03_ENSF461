@@ -4,12 +4,25 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "parser.h"
-
+#include <signal.h>
 
 // Define MAX_PATH_LENGTH using PATH_MAX
 #define BUFLEN 1024
 
 //To Do: This base file has been provided to help you start the lab, you'll need to heavily modify it to implement all of the features
+
+pid_t backgroundProcessID = 0;
+
+// Signal handler function to catch child process termination
+void childTerminated(int signo) {
+    int status;
+    pid_t terminated = waitpid(backgroundProcessID, &status, WNOHANG);
+    if (terminated > 0) {
+        printf("Background Process %d Terminated\n", backgroundProcessID);
+        printf("$ ");
+        fflush(stdout); // Flush the standard output
+    }
+}
 
 int main() {
     char buffer[1024];
@@ -19,8 +32,7 @@ int main() {
 
     bool runningBackground = false;
     int status;
-    pid_t terminated = 0;
-    pid_t backgroundProcessID = 0;
+    
 
     char *path = getenv("PATH");//get the current balue of the PATH variable
     char path_backup[200];
@@ -28,36 +40,14 @@ int main() {
     strcpy(path_backup, path);//copies the current path as it somehow seems to change later on
     
     printf("Welcome to the GroupXX shell! Enter commands, enter 'quit' to exit\n");
+
+    //Register handler for SIGCHLD
+    signal(SIGCHLD, childTerminated);
     do {
 
-        //check if background process terminated
-        terminated = waitpid(backgroundProcessID, &status, WNOHANG);
-        if((terminated == -1 && backgroundProcessID != 0) || terminated > 0){
-            printf("Background process %d terminated\n", backgroundProcessID);
-            backgroundProcessID = 0;
-        }
-
-        /*if(backgroundProcessID > 0){
-            pid_t backgroundSplit = fork();
-            if(backgroundSplit == -1){
-                perror("Fork Failed");
-                exit(EXIT_FAILURE);
-            }else if(backgroundSplit == 0){
-                
-            }else{
-                while(1){
-                    terminated = waitpid(backgroundProcessID, &status, WNOHANG);
-                    if((terminated == -1 && backgroundProcessID != 0) || terminated > 0){
-                        printf("Background process %d terminated\n", backgroundProcessID);
-                        backgroundProcessID = 0;
-                        break;
-                    }
-                }
-                wait(NULL);
-            }
-        }*/
         //Print the terminal prompt and get input
         printf("$ ");
+        fflush(stdout);
         char *input = fgets(buffer, sizeof(buffer), stdin);
         if(!input)
         {
@@ -315,15 +305,20 @@ int main() {
                     
                 } else{
                     if(runningBackground){
-                        runningBackground = false;
                         backgroundProcessID = forkV;
                     }else{
-                        wait(NULL);
+                        waitpid(forkV, &status, 0);
                     }
                 }
             }
         }
 
+        //Remember to free any memory you allocate!
+        free(parsedinput);
+    } while ( 1 );
+
+    return 0;
+}
         //Remember to free any memory you allocate!
         free(parsedinput);
     } while ( 1 );
