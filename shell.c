@@ -19,7 +19,7 @@ void childTerminated(int signo) {
     int status;
     pid_t terminated = waitpid(backgroundProcessID, &status, WNOHANG);
     if (terminated > 0) {
-        printf("Background Process %d Terminated\n", backgroundProcessID);
+        printf("\nBackground Process %d Terminated\n", backgroundProcessID);
         printf("$ ");
         fflush(stdout); // Flush the standard output
     }
@@ -313,6 +313,12 @@ int main() {
             }
         }
 
+        //Remember to free any memory you allocate!
+        free(parsedinput);
+    } while ( 1 );
+
+    return 0;
+}
         //Remember to free any memory you allocate!
         free(parsedinput);
     } while ( 1 );
