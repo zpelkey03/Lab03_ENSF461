@@ -17,6 +17,11 @@ int main() {
     char* args[3];
     char newline;
 
+    bool runningBackground = false;
+    int status;
+    pid_t terminated = 0;
+    pid_t backgroundProcessID = 0;
+
     char *path = getenv("PATH");//get the current balue of the PATH variable
     char path_backup[200];
 
@@ -24,6 +29,33 @@ int main() {
     
     printf("Welcome to the GroupXX shell! Enter commands, enter 'quit' to exit\n");
     do {
+
+        //check if background process terminated
+        terminated = waitpid(backgroundProcessID, &status, WNOHANG);
+        if((terminated == -1 && backgroundProcessID != 0) || terminated > 0){
+            printf("Background process %d terminated\n", backgroundProcessID);
+            backgroundProcessID = 0;
+        }
+
+        /*if(backgroundProcessID > 0){
+            pid_t backgroundSplit = fork();
+            if(backgroundSplit == -1){
+                perror("Fork Failed");
+                exit(EXIT_FAILURE);
+            }else if(backgroundSplit == 0){
+                
+            }else{
+                while(1){
+                    terminated = waitpid(backgroundProcessID, &status, WNOHANG);
+                    if((terminated == -1 && backgroundProcessID != 0) || terminated > 0){
+                        printf("Background process %d terminated\n", backgroundProcessID);
+                        backgroundProcessID = 0;
+                        break;
+                    }
+                }
+                wait(NULL);
+            }
+        }*/
         //Print the terminal prompt and get input
         printf("$ ");
         char *input = fgets(buffer, sizeof(buffer), stdin);
@@ -42,9 +74,18 @@ int main() {
             printf("Bye!!\n");
             return 0;
         }
-        else {
+        else{
             //check if "| exists"
             char *pipe_position = strchr(parsedinput, '|');
+
+            //check if "&" exists
+            char* background_position = strchr(parsedinput, '&');
+
+            //remove "&" and allow this process to be run in the background
+            if(background_position != NULL){
+                runningBackground = true;
+                *background_position = '\0';
+            }
 
             if (pipe_position != NULL){
                 //call pipe
@@ -79,7 +120,7 @@ int main() {
                     int arg_count = 0;
 
                     // Set the args
-                    while (token != NULL) {
+                    while (token != NULL && token != "&") {
                         args[arg_count++] = token;
                         token = strtok(NULL, " ");
                     }
@@ -273,7 +314,12 @@ int main() {
                     
                     
                 } else{
-                    wait(NULL);
+                    if(runningBackground){
+                        runningBackground = false;
+                        backgroundProcessID = forkV;
+                    }else{
+                        wait(NULL);
+                    }
                 }
             }
         }
