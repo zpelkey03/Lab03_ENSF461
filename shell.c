@@ -12,6 +12,7 @@
 //To Do: This base file has been provided to help you start the lab, you'll need to heavily modify it to implement all of the features
 
 pid_t backgroundProcessID = 0;
+bool runningBackground = false;
 
 // Signal handler function to catch child process termination
 void childTerminated(int signo) {
@@ -30,7 +31,6 @@ int main() {
     char* args[3];
     char newline;
 
-    bool runningBackground = false;
     int status;
     
 
@@ -44,7 +44,6 @@ int main() {
     //Register handler for SIGCHLD
     signal(SIGCHLD, childTerminated);
     do {
-
         //Print the terminal prompt and get input
         printf("$ ");
         fflush(stdout);
@@ -306,6 +305,7 @@ int main() {
                 } else{
                     if(runningBackground){
                         backgroundProcessID = forkV;
+                        runningBackground = false;
                     }else{
                         waitpid(forkV, &status, 0);
                     }
@@ -313,12 +313,6 @@ int main() {
             }
         }
 
-        //Remember to free any memory you allocate!
-        free(parsedinput);
-    } while ( 1 );
-
-    return 0;
-}
         //Remember to free any memory you allocate!
         free(parsedinput);
     } while ( 1 );
