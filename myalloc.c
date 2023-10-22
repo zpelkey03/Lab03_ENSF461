@@ -80,19 +80,27 @@ void* myalloc(size_t size) {
         return NULL;
     }
 
-    // Calculate the total size needed (including the header)
-    size_t total_size = size + sizeof(node_t);
-
+    
     // Search for a free chunk within the arena (your allocation logic goes here)
     node_t* current = (node_t*)arena_start;
+
     while (current != NULL) {
-        if (current->is_free && current->size >= total_size) {
+        // Calculate the total size needed (including the header)
+        size_t total_size = size ;
+        
+
+        if(current->bwd != NULL){
+            total_size -= sizeof(node_t);
+        }
+
+        if (current->is_free && current->size >= total_size && total_size < getpagesize()) {
             // Found a suitable free chunk
-            size_t remaining_size = current->size - total_size;
+            size_t remaining_size = current->size - total_size - sizeof(node_t);
             // Split the chunk if there's enough space for a new free chunk
-            if (remaining_size >= sizeof(node_t)) {
+           
+            if (remaining_size > sizeof(node_t)) {
                 // Create a new free chunk
-                node_t* new_chunk = (node_t*)((char*)current + total_size);
+                node_t* new_chunk = (node_t*)((char*)current + total_size + sizeof(node_t));
                 new_chunk->size = remaining_size - sizeof(node_t);
                 new_chunk->is_free = 1;
                 new_chunk->fwd = current->fwd;
@@ -101,12 +109,15 @@ void* myalloc(size_t size) {
                 current->is_free = 0;
                 current->fwd = new_chunk;
 
+                     
                 // Return a pointer to the application area (after the header)
                 return (void*)((char*)current + sizeof(node_t));
             } else {
                 // Use the entire chunk if there's no space for a new free chunk
                 current->is_free = 0;
-
+                if(current->size == getpagesize()){
+                    current->size -= sizeof(node_t);
+                }
                 // Return a pointer to the application area (after the header)
                 return (void*)((char*)current + sizeof(node_t));
             }
@@ -118,6 +129,8 @@ void* myalloc(size_t size) {
     return NULL; // No suitable free chunk found
 }
 
+
+
 void myfree(void* ptr) {
     if (ptr == NULL || arena_start == NULL) {
         return; // Invalid input
@@ -128,16 +141,20 @@ void myfree(void* ptr) {
 
     // Mark the chunk as free
     header->is_free = 1;
-    header-> size -= sizeof(node_t);
-    // Optional coalescing (merging with adjacent free chunks)
+    
+    if(header->fwd == NULL && header->bwd == NULL){
+        
+    }
+    // Perform coalescing (merging with adjacent free chunks)
     node_t* current = (node_t*)arena_start;
     while (current) {
         if (current->is_free) {
             // Check if the next chunk is also free and merge them
             node_t* next = current->fwd;
-            if (next && next->is_free) {
-                current->size += sizeof(node_t) + next->size; // Merge sizes
-                current->fwd = next->fwd; // Update the forward pointer
+            while (next && next->is_free ) {
+                current->size += next->size + sizeof(node_t); // Merge sizes
+                current->fwd = next->fwd;     // Update the forward pointer
+                next = current->fwd;         // Move to the next potential free chunk
             }
         }
         current = current->fwd;
